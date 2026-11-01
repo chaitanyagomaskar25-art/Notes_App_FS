@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --color-brand: #4f46e5;
+  --color-brand-hover: #4338ca;
+  --color-brand-soft: #e0e7ff;
+  --color-danger: #ef4444;
+  --color-danger-soft: #fee2e2;
+}
+
+html, body, #root { height: 100%; }
+body { font-family: var(--font-sans); background: #f4f6fb; color: #1f2937; -webkit-font-smoothing: antialiased; }
+.dark body { background: #0f172a; color: #e5e7eb; }
+
+.EasyMDEContainer .CodeMirror {
+  border-radius: 0.5rem; border-color: #e5e7eb; min-height: 250px;
+  font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.875rem;
+}
+aside::-webkit-scrollbar { width: 6px; }
+aside::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
