@@ -13,6 +13,7 @@
 
 html, body, #root { height: 100%; }
 body { font-family: var(--font-sans); background: #f4f6fb; color: #1f2937; -webkit-font-smoothing: antialiased; }
+.dark { color-scheme: dark; }
 .dark body { background: #0f172a; color: #e5e7eb; }
 
 .EasyMDEContainer .CodeMirror {

@@ -1,12 +1,12 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { noteTemplates } from "../templates/noteTemplates";
-import Checklist from "./Checklist";
+
 import { aiAssist } from "../services/aiApi";
 import SimpleMDE from "react-simplemde-editor";
 import "easymde/dist/easymde.min.css";
 
-function NoteEditor({ note, onSave, onCancel, saving, folders = [] }) {
+function NoteEditor({ note, onSave, onCancel, saving, folders = [], autoSave = true }) {
   const [title, setTitle] = useState(() => note?.title ?? "");
   const [content, setContent] = useState(() => note?.content ?? "");
   const [category, setCategory] = useState(() => note?.category ?? "General");
@@ -18,9 +18,6 @@ function NoteEditor({ note, onSave, onCancel, saving, folders = [] }) {
   const [archived, setArchived] = useState(() => Boolean(note?.archived));
   const [trashed, setTrashed] = useState(() => Boolean(note?.trashed));
   const [folder, setFolder] = useState(() => note?.folder || "");
-  const [checklist, setChecklist] = useState(() =>
-    Array.isArray(note?.checklist) ? note.checklist : []
-  );
   const [reminder, setReminder] = useState(() => {
     if (!note?.reminder) return "";
     const d = new Date(note.reminder);
@@ -89,9 +86,10 @@ function NoteEditor({ note, onSave, onCancel, saving, folders = [] }) {
       return;
     }
     isDirty.current = true;
-  }, [title, content, category, favorite, pinned, tags, archived, trashed, folder, checklist, reminder]);
+  }, [title, content, category, favorite, pinned, tags, archived, trashed, folder, reminder]);
 
   useEffect(() => {
+    if (!autoSave) return;
     if (!isDirty.current || !title.trim()) return;
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(() => {
@@ -109,7 +107,6 @@ function NoteEditor({ note, onSave, onCancel, saving, folders = [] }) {
           archived,
           trashed,
           folder: folder || null,
-      checklist,
       reminder: reminder || null,
         },
         true
@@ -119,7 +116,7 @@ function NoteEditor({ note, onSave, onCancel, saving, folders = [] }) {
     return () => {
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     };
-  }, [title, content, category, favorite, pinned, tags, archived, trashed, folder, checklist, reminder]);
+  }, [title, content, category, favorite, pinned, tags, archived, trashed, folder, reminder]);
 
   const editorOptions = useMemo(
     () => ({
@@ -152,7 +149,6 @@ function NoteEditor({ note, onSave, onCancel, saving, folders = [] }) {
       archived,
       trashed,
       folder: folder || null,
-      checklist,
       reminder: reminder || null,
     });
   };
@@ -309,8 +305,6 @@ function NoteEditor({ note, onSave, onCancel, saving, folders = [] }) {
           options={editorOptions}
         />
       </div>
-
-      <Checklist items={checklist} onChange={setChecklist} />
 
       <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 flex flex-col gap-2">
         <div className="flex items-center justify-between">

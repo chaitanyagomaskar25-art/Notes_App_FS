@@ -17,17 +17,6 @@ const userSchema = new mongoose.Schema({
         select: false
     },
 
-    githubAccessToken: {
-        type: String,
-        select: false,
-        default: null
-    },
-
-    githubUsername: {
-        type: String,
-        default: null
-    }
-
 })
 
 

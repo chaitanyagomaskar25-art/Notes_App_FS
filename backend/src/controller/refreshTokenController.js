@@ -30,18 +30,49 @@ export const refreshTokenAccess = async (req, res) => {
       });
     }
 
+    // Revoke the old refresh token (rotation)
+    await RefreshToken.findOneAndUpdate(
+      { token: refreshToken },
+      { revoked: true },
+    );
+
+    // Generate new access token (15 minutes)
     const newAccessToken = jwt.sign(
       { userId: decode.userId },
       process.env.ACCESS_TOKEN,
       { expiresIn: "15m" },
     );
-    
+
+    // Generate new refresh token (7 days) - rotation
+    const newRefreshToken = jwt.sign(
+      { userId: decode.userId },
+      process.env.REFRESH_TOKEN,
+      { expiresIn: "7d" },
+    );
+
+    // Save new refresh token to database
+    await RefreshToken.create({
+      token: newRefreshToken,
+      user: decode.userId,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    });
+
+    // Set new access token cookie
     res.cookie("access_token", newAccessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
       maxAge: 15 * 60 * 1000,
+    });
+
+    // Set new refresh token cookie
+    res.cookie("refresh_token", newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     return res.status(200).json({

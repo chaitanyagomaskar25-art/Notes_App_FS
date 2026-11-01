@@ -46,7 +46,7 @@ export default function Sidebar() {
     <aside
       className={`${
         collapsed ? "w-16" : "w-60"
-      } fixed top-0 left-0 h-screen z-30 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-200
+      } fixed top-0 left-0 h-screen z-30 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-200`}
     >
       <div className="flex items-center justify-between px-3 py-4 border-b border-gray-200 dark:border-gray-700">
         {!collapsed && (

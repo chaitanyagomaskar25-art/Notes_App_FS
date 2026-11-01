@@ -8,6 +8,7 @@ import Notes from "./pages/Notes";
 import Settings from "./pages/Settings";
 import ShareView from "./pages/ShareView";
 import Snippets from "./pages/Snippets";
+import CreateNote from "./pages/CreateNote";
 
 const router = createBrowserRouter([
   {
@@ -52,6 +53,10 @@ const router = createBrowserRouter([
       {
         path: "/notes",
         element: <Notes />
+      },
+      {
+        path: "/notes/new",
+        element: <CreateNote />
       },
       {
         path: "/settings",

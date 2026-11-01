@@ -24,6 +24,8 @@ export default function Snippets() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState(null);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmId, setConfirmId] = useState(null);
   const [form, setForm] = useState({
     title: "", code: "", language: "javascript", description: "", tags: "",
   });
@@ -83,13 +85,22 @@ export default function Snippets() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this snippet?")) return;
+    setConfirmId(id);
+    setShowConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmId) return;
     try {
-      await deleteSnippet(id);
-      setSnippets((prev) => prev.filter((s) => s._id !== id));
-      if (editing === id) resetForm();
+      await deleteSnippet(confirmId);
+      setSnippets((prev) => prev.filter((s) => s._id !== confirmId));
+      if (editing === confirmId) resetForm();
+      setShowConfirm(false);
+      setConfirmId(null);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to delete snippet.");
+      setShowConfirm(false);
+      setConfirmId(null);
     }
   };
 
@@ -167,6 +178,40 @@ export default function Snippets() {
                   </SyntaxHighlighter>
                 </div>
               ))}
+            </div>
+          )}
+          {showConfirm && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    Delete Snippet
+                  </h2>
+                  <button
+                    onClick={() => setShowConfirm(false)}
+                    className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  Are you sure you want to delete this snippet?
+                </p>
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => setShowConfirm(false)}
+                    className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-sm font-medium transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleConfirmDelete}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow transition"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </main>

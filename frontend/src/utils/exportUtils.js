@@ -1,5 +1,4 @@
 import { jsPDF } from "jspdf";
-import JSZip from "jszip";
 
 const slugify = (value) =>
   (value || "note")
@@ -45,13 +44,3 @@ export const exportPdf = (note) => {
   doc.save(`${slugify(title)}.pdf`);
 };
 
-export const exportAllZip = async (notes) => {
-  const zip = new JSZip();
-  notes.forEach((note, index) => {
-    const name = `${String(index + 1).padStart(2, "0")}-${slugify(note.title)}.md`;
-    const content = `# ${note.title || "Untitled"}\n\n${note.content || ""}`;
-    zip.file(name, content);
-  });
-  const blob = await zip.generateAsync({ type: "blob" });
-  downloadBlob("notes-export.zip", blob);
-};

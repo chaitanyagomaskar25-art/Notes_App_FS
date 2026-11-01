@@ -7,7 +7,7 @@ import { folderRouter } from "./src/routes/folderRoute.js";
 import { shareRouter } from "./src/routes/shareRoute.js";
 import { aiRouter } from "./src/routes/aiRoute.js";
 import { snippetRouter } from "./src/routes/snippetRoute.js";
-import { githubRouter } from "./src/routes/githubRoute.js";
+
 import { activityRouter } from "./src/routes/activityRoute.js";
 import cors from 'cors'
 import cookieParser from "cookie-parser";
@@ -53,7 +53,6 @@ app.use("/api/folders", folderRouter)
 app.use("/api", shareRouter)
 app.use("/api/ai", aiRouter)
 app.use("/api/snippets", snippetRouter)
-app.use("/api/github", githubRouter)
 app.use("/api/activity", activityRouter)
 
 connectDB()

@@ -1,5 +1,5 @@
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { useAuth } from "../conetxt/AuthContext";
 import { useTheme } from "../conetxt/ThemeContext";
@@ -30,7 +30,7 @@ import NoteEditor from "../components/NoteEditor";
 import CollaboratorManager from "../components/CollaboratorManager";
 import Checklist from "../components/Checklist";
 import Sidebar from "../components/Sidebar";
-import { exportMarkdown, exportTxt, exportPdf, exportAllZip } from "../utils/exportUtils";
+import { exportMarkdown, exportTxt, exportPdf } from "../utils/exportUtils";
 
 function Notes() {
   const { user, logout } = useAuth();
@@ -42,12 +42,17 @@ function Notes() {
   const [selectedTag, setSelectedTag] = useState(null);
   const [folders, setFolders] = useState([]);
   const [selectedFolder, setSelectedFolder] = useState(null);
-  const [importing, setImporting] = useState(false);
-  const fileInputRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [dateField, setDateField] = useState("updated");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [showFolderModal, setShowFolderModal] = useState(false);
+  const [folderName, setFolderName] = useState("");
+  const [editingFolderId, setEditingFolderId] = useState(null);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [confirmTitle, setConfirmTitle] = useState("");
+  const [confirmMessage, setConfirmMessage] = useState("");
 
   useEffect(() => {
     setSelectedTag(null);
@@ -215,23 +220,17 @@ function Notes() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this note?")) {
-      return;
-    }
-
-    try {
+    setConfirmTitle("Delete Note");
+    setConfirmMessage("Are you sure you want to delete this note?");
+    setConfirmAction(async () => {
       await deleteNote(id);
       setNotes((current) => current.filter((note) => note._id !== id));
-
       if (selectedNote?._id === id) {
         setSelectedNote(null);
         setEditing(false);
       }
-    } catch (err) {
-      setError(
-        err.response?.data?.message || "Failed to delete note."
-      );
-    }
+    });
+    setShowConfirm(true);
   };
 
   const handleUpdateCollaborators = async (id, collaborators) => {
@@ -250,38 +249,46 @@ function Notes() {
     setEditing(true);
   };
 
-  const handleCreateFolder = async () => {
-    const name = window.prompt("Folder name:");
+  const handleCreateFolder = () => {
+    setFolderName("");
+    setEditingFolderId(null);
+    setShowFolderModal(true);
+  };
+
+  const handleSaveFolder = async () => {
+    const name = folderName.trim();
     if (!name) return;
     try {
-      await createFolder(name.trim());
+      if (editingFolderId) {
+        await renameFolder(editingFolderId, name);
+      } else {
+        await createFolder(name);
+      }
       await loadFolders();
+      setShowFolderModal(false);
+      setFolderName("");
+      setEditingFolderId(null);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to create folder.");
+      setError(err.response?.data?.message || "Failed to save folder.");
     }
   };
 
-  const handleRenameFolder = async (folder) => {
-    const name = window.prompt("Rename folder:", folder.name);
-    if (!name || name.trim() === folder.name) return;
-    try {
-      await renameFolder(folder._id, name.trim());
-      await loadFolders();
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to rename folder.");
-    }
+  const handleRenameFolder = (folder) => {
+    setFolderName(folder.name);
+    setEditingFolderId(folder._id);
+    setShowFolderModal(true);
   };
 
   const handleDeleteFolder = async (folder) => {
-    if (!window.confirm(`Delete folder "${folder.name}"? Notes will be moved out.`)) return;
-    try {
+    setConfirmTitle("Delete Folder");
+    setConfirmMessage(`Delete folder "${folder.name}"? Notes will be moved out.`);
+    setConfirmAction(async () => {
       await deleteFolder(folder._id);
       if (selectedFolder === folder._id) setSelectedFolder(null);
       await loadFolders();
       await loadNotes();
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to delete folder.");
-    }
+    });
+    setShowConfirm(true);
   };
 
   const handleRestore = async (id) => {
@@ -294,29 +301,29 @@ function Notes() {
   };
 
   const handlePermanentDelete = async (id) => {
-    if (!window.confirm("Permanently delete this note? This cannot be undone.")) return;
-    try {
+    setConfirmTitle("Permanent Delete");
+    setConfirmMessage("Permanently delete this note? This cannot be undone.");
+    setConfirmAction(async () => {
       await permanentDeleteNote(id);
       setNotes((current) => current.filter((note) => note._id !== id));
       if (selectedNote?._id === id) {
         setSelectedNote(null);
         setEditing(false);
       }
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to delete note.");
-    }
+    });
+    setShowConfirm(true);
   };
 
   const handleEmptyTrash = async () => {
-    if (!window.confirm("Empty trash? All trashed notes will be permanently deleted.")) return;
-    try {
+    setConfirmTitle("Empty Trash");
+    setConfirmMessage("Empty trash? All trashed notes will be permanently deleted.");
+    setConfirmAction(async () => {
       await emptyTrash();
       await loadNotes();
       setSelectedNote(null);
       setEditing(false);
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to empty trash.");
-    }
+    });
+    setShowConfirm(true);
   };
 
   const handleToggleArchive = async () => {
@@ -464,35 +471,6 @@ function Notes() {
     }
   };
 
-  const handleImportFiles = async (event) => {
-    const files = Array.from(event.target.files || []);
-    event.target.value = "";
-    if (files.length === 0) return;
-    setImporting(true);
-    setError("");
-    try {
-      for (const file of files) {
-        const text = await file.text();
-        const baseName = file.name.replace(/\\.[^.]+$/, "");
-        const title = baseName || "Imported Note";
-        const created = await createNote({
-          title,
-          content: text,
-          category: "Imported",
-        });
-        const noteId = created?._id || created?.note?._id;
-        if (noteId) {
-          await logActivity("imported", noteId, { title, filename: file.name });
-        }
-      }
-      await loadNotes();
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to import files.");
-    } finally {
-      setImporting(false);
-    }
-  };
-
   const handleToggleFavorite = async () => {
     if (!selectedNote?._id) return;
     try {
@@ -574,34 +552,7 @@ function Notes() {
             </button>
           )}
           <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={importing}
-            className="px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold text-sm rounded-lg shadow-md transition hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-60"
-          >
-            {importing ? "Importing..." : "Import"}
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".md,.txt,.markdown,text/plain,text/markdown"
-            multiple
-            className="hidden"
-            onChange={handleImportFiles}
-          />
-          <button
-            onClick={async () => {
-              await exportAllZip(visibleNotes);
-              await logActivity("exported", null, {
-                format: "zip",
-                count: visibleNotes.length,
-              });
-            }}
-            className="px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold text-sm rounded-lg shadow-md transition hover:bg-gray-200 dark:hover:bg-gray-600"
-          >
-            Export All (ZIP)
-          </button>
-          <button
-            onClick={startNewNote}
+            onClick={() => navigate("/notes/new")}
             className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-lg shadow-md transition"
           >
             + New Note
@@ -689,6 +640,89 @@ function Notes() {
           </button>
         </div>
 
+        {showFolderModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {editingFolderId ? "Rename Folder" : "New Folder"}
+                </h2>
+                <button
+                  onClick={() => setShowFolderModal(false)}
+                  className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="flex flex-col gap-3">
+                <label className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                  Folder Name
+                </label>
+                <input
+                  type="text"
+                  value={folderName}
+                  onChange={(e) => setFolderName(e.target.value)}
+                  placeholder="Enter folder name"
+                  className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  autoFocus
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-4">
+                <button
+                  onClick={() => setShowFolderModal(false)}
+                  className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-sm font-medium transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveFolder}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow transition"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {confirmTitle}
+                </h2>
+                <button
+                  onClick={() => setShowConfirm(false)}
+                  className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                >
+                  ✕
+                </button>
+              </div>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
+                {confirmMessage}
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setShowConfirm(false)}
+                  className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-sm font-medium transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    await confirmAction();
+                    setShowConfirm(false);
+                  }}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow transition"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm flex flex-col gap-3">
           <input
             type="text"
@@ -743,7 +777,7 @@ function Notes() {
               setSelectedNote(note);
               setEditing(false);
             }}
-            onCreate={startNewNote}
+            onCreate={() => navigate("/notes/new")}
             onDelete={handleDelete}
             onRestore={handleRestore}
             onPermanentDelete={handlePermanentDelete}
@@ -938,7 +972,7 @@ function Notes() {
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Welcome to your notes</h2>
                 <p className="text-gray-500 mb-3">Select a note or create a new one to get started.</p>
                 <button
-                  onClick={startNewNote}
+                  onClick={() => navigate("/notes/new")}
                   className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-lg shadow-md transition"
                 >
                   Create a Note
