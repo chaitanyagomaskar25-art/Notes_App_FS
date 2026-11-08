@@ -38,8 +38,8 @@ export default function Sidebar() {
   }, [collapsed]);
 
   useEffect(() => {
-    const initial = window.localStorage.getItem('sidebar-collapsed') === 'true';
-    document.documentElement.style.setProperty('--sidebar-width', initial ? '4rem' : '15rem');
+    const initial = window.localStorage.getItem("sidebar-collapsed") === "true";
+    document.documentElement.style.setProperty("--sidebar-width", initial ? "4rem" : "15rem");
   }, []);
 
   return (

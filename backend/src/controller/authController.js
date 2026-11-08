@@ -32,7 +32,7 @@ export const registration = async (req, res) => {
       });
     }
 
-    const user = User({
+    const user = new User({
       name: trimmedName,
       email: trimmedEmail,
       password,
@@ -106,41 +106,35 @@ export const login = async (req, res) => {
       });
     }
 
-const isPasswordCorrect = await bcrypt.compare(
-  password,
-  userExist.password
-);
+    const isPasswordCorrect = await bcrypt.compare(
+      password,
+      userExist.password
+    );
     if (!isPasswordCorrect) {
-  return res.status(401).json({
-    message: "Invalid email or password",
-  });
-}
-
+      return res.status(401).json({
+        message: "Invalid email or password",
+      });
+    }
 
     const access_token = jwt.sign(
       { userId: userExist._id },
       process.env.ACCESS_TOKEN,
-      {
-        expiresIn: "15m",
-      },
+      { expiresIn: "15m" }
     );
 
     const refresh_token = jwt.sign(
       { userId: userExist._id },
       process.env.REFRESH_TOKEN,
-      {
-        expiresIn: "7d",
-      },
+      { expiresIn: "7d" }
     );
 
-     await RefreshToken.deleteMany({ user: userExist._id });
+    await RefreshToken.deleteMany({ user: userExist._id });
 
     await RefreshToken.create({
       token: refresh_token,
       user: userExist._id,
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
-
 
     res.cookie("access_token", access_token, {
       httpOnly: true,
@@ -178,7 +172,7 @@ const isPasswordCorrect = await bcrypt.compare(
 
 export const getMe = async (req, res) => {
   try {
-    const user = req.user
+    const user = req.user;
 
     return res.status(200).json({
       user: {
@@ -207,11 +201,10 @@ export const logout = async (req, res) => {
     }
 
     res.clearCookie("refresh_token");
-    res.clearCookie("access_token")
+    res.clearCookie("access_token");
     res.status(200).json({
       message: "Logout successful",
     });
-
 
   } catch (error) {
     res.status(500).json({

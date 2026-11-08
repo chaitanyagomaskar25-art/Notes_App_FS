@@ -43,7 +43,7 @@ app.use(cookieParser())
 
 app.get("/", (req, res)=>{
     res.json({
-        message : "Searver is running"
+        message: "Server is running"
     })
 })
 

@@ -8,7 +8,7 @@ import { createNote } from "../services/noteApi";
 import { getFolders } from "../services/folderApi";
 
 export default function CreateNote() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { theme } = useTheme();
   const navigate = useNavigate();
   const [folders, setFolders] = useState([]);

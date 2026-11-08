@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 
 const AuthContext = createContext(null);
@@ -8,10 +7,10 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
- useEffect(() => {
+  useEffect(() => {
     let active = true;
 
-    
+
     async function checkSession() {
       try {
         let response = await fetch(`${API_URL}/me`, {
@@ -19,7 +18,7 @@ export const AuthProvider = ({ children }) => {
           credentials: "include",
         });
 
-         if (response.status === 401) {
+        if (response.status === 401) {
         try {
           await refreshAccessToken();
 
@@ -61,19 +60,19 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   async function refreshAccessToken() {
-  const response = await fetch(`${API_URL}/refresh`, {
-    method: "POST",
-    credentials: "include",
-  });
+    const response = await fetch(`${API_URL}/refresh`, {
+      method: "POST",
+      credentials: "include",
+    });
 
-  const data = await response.json();
+    const data = await response.json();
 
-  if (!response.ok) {
-    throw new Error(data.message || "Session expired. Please log in again.");
+    if (!response.ok) {
+      throw new Error(data.message || "Session expired. Please log in again.");
+    }
+
+    return true;
   }
-
-  return true;
-}
 
 
   async function signup({ name, email, password }) {
@@ -139,8 +138,6 @@ export const AuthProvider = ({ children }) => {
       setIsLoading(false);
     }
   }
-
-
 
   async function logout() {
     const response = await fetch(`${API_URL}/logout`, {

@@ -70,9 +70,16 @@ export const updateNote = async (userId, id, data) => {
     archived: note.archived, trashed: note.trashed, tags: note.tags,
     folder: note.folder, checklist: note.checklist, reminder: note.reminder,
   });
-  const versions = await NoteVersion.find({ note: note._id }).sort({ createdAt: -1 }).skip(20).select("_id");
-  if (versions.length) {
-    await NoteVersion.deleteMany({ _id: { $in: versions.map((v) => v._id) } });
+
+  // Keep only the latest 20 versions; remove older ones
+  const oldVersions = await NoteVersion.find({ note: note._id })
+    .sort({ createdAt: -1 })
+    .skip(20)
+    .select("_id");
+  if (oldVersions.length) {
+    await NoteVersion.deleteMany({
+      _id: { $in: oldVersions.map((v) => v._id) },
+    });
   }
 
   const { title, content, category, favorite, pinned, archived, trashed, tags, folder, checklist, reminder } = data || {};
